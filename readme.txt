@@ -34,8 +34,8 @@ Egen produktkatalog och produktsida för bernerturf.com.
 * Bygger på WP-Cron. Sajter med lite trafik nattetid: be webbyrån köra wp-cron.php med serverns cron.
 
 == Uppdateringar ==
-* Nya versioner publiceras som Releases på https://github.com/Damma65/bernerturf-produkter och installeras
-  automatiskt av WordPress (bakgrundsuppdatering). Inställningar visar version och har "Sök efter uppdatering nu".
+* Nya versioner publiceras i https://github.com/Damma65/bernerturf-produkter (update.json + releases/*.zip)
+  och installeras automatiskt av WordPress (bakgrundsuppdatering). Inställningar visar version och har "Sök efter uppdatering nu".
 * define( 'BTP_DISABLE_AUTO_UPDATE', true ); = uppdateringen visas under Tillägg men installeras för hand.
 * define( 'BTP_UPDATE_REPO', '' ); = ingen uppdateringskoll alls.
 
@@ -61,7 +61,7 @@ Inaktivera och radera pluginet. Fälten btp_* och leverantörstermerna ligger kv
 = 0.5.0 =
 * Automatisk nattlig import direkt från SharePoint via Microsoft Graph (endast läsrätt), med bildmapp,
   ändringskontroll, översättning i omgångar, skyddsspärr och e-postrapport.
-* Uppdaterar sig själv från GitHub-releaser (kan stängas av i wp-config.php).
+* Uppdaterar sig själv från GitHub (kan stängas av i wp-config.php).
 = 0.4.1 =
 * Ny bild med samma filnamn byter bilden (filerna jämförs på innehåll).
 * Handskriven text i en språkcell är låst och ändras aldrig automatiskt. Claudes oförändrade översättningar i den ifyllda Excel-filen räknas fortfarande som automatiska och uppdateras när finskan ändras.

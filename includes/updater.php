@@ -2,7 +2,8 @@
 /**
  * Uppdateringar direkt från GitHub (publikt arkiv Damma65/bernerturf-produkter).
  *
- * Nya versioner läggs upp som "Release" med zip-filen bifogad. WordPress ser dem som vanliga
+ * Nya versioner läggs upp i arkivet: update.json (version, länk, ändringar) och zip-filen i mappen releases/.
+ * WordPress ser dem som vanliga
  * pluginuppdateringar och installerar dem automatiskt (bakgrundsuppdatering, ungefär två gånger per dygn).
  *
  * Stäng av automatiken: define( 'BTP_DISABLE_AUTO_UPDATE', true ); i wp-config.php – då visas
@@ -35,27 +36,23 @@ function btp_update_info( $force = false ) {
 		return $cached['version'] ? $cached : null;
 	}
 	$response = wp_remote_get(
-		'https://api.github.com/repos/' . $repo . '/releases/latest',
+		'https://raw.githubusercontent.com/' . $repo . '/main/update.json',
 		array(
 			'timeout' => 15,
-			'headers' => array( 'Accept' => 'application/vnd.github+json', 'User-Agent' => 'bernerturf-produkter/' . BTP_VERSION ),
+			'headers' => array( 'User-Agent' => 'bernerturf-produkter/' . BTP_VERSION ),
 		)
 	);
 	$info = array( 'version' => '', 'package' => '', 'notes' => '', 'date' => '', 'url' => 'https://github.com/' . $repo );
 	if ( ! is_wp_error( $response ) && 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-		if ( is_array( $body ) && empty( $body['draft'] ) && empty( $body['prerelease'] ) ) {
-			foreach ( (array) $body['assets'] as $asset ) {
-				if ( preg_match( '/^bernerturf-produkter.*\.zip$/', (string) $asset['name'] ) ) {
-					$info['package'] = $asset['browser_download_url'];
-				}
-			}
-			if ( $info['package'] && 0 === strpos( $info['package'], 'https://github.com/' . $repo . '/' ) ) {
-				$info['version'] = ltrim( (string) $body['tag_name'], 'vV' );
-				$info['notes']   = (string) $body['body'];
-				$info['date']    = (string) $body['published_at'];
-				$info['url']     = (string) $body['html_url'];
-			}
+		$body    = json_decode( wp_remote_retrieve_body( $response ), true );
+		$package = is_array( $body ) && isset( $body['package'] ) ? (string) $body['package'] : '';
+		// Bara zip-filer från det egna arkivet godtas.
+		$allowed = 0 === strpos( $package, 'https://raw.githubusercontent.com/' . $repo . '/' ) || 0 === strpos( $package, 'https://github.com/' . $repo . '/' );
+		if ( $allowed && preg_match( '/\.zip$/', $package ) && ! empty( $body['version'] ) && preg_match( '/^\d+\.\d+(\.\d+)?$/', (string) $body['version'] ) ) {
+			$info['version'] = (string) $body['version'];
+			$info['package'] = $package;
+			$info['notes']   = isset( $body['notes'] ) ? (string) $body['notes'] : '';
+			$info['date']    = isset( $body['date'] ) ? (string) $body['date'] : '';
 		}
 	}
 	// Även misslyckade frågor sparas (kortare), så att GitHub inte frågas vid varje sidladdning.
@@ -174,7 +171,7 @@ function btp_update_box() {
 		<p>Installerad version: <b><?php echo esc_html( BTP_VERSION ); ?></b>.
 			<?php if ( $info ) : ?>Senaste på GitHub: <b><?php echo esc_html( $info['version'] ); ?></b>.<?php endif; ?>
 			Automatiska uppdateringar: <b><?php echo $auto ? 'på' : 'av (BTP_DISABLE_AUTO_UPDATE)'; ?></b>.</p>
-		<p class="hint">Nya versioner hämtas från <a href="<?php echo esc_url( 'https://github.com/' . btp_update_repo() . '/releases' ); ?>" target="_blank" rel="noopener">github.com/<?php echo esc_html( btp_update_repo() ); ?></a> och installeras av WordPress själv. Innehåll (texter, bilder, synlighet) kräver aldrig en ny version.</p>
+		<p class="hint">Nya versioner hämtas från <a href="<?php echo esc_url( 'https://github.com/' . btp_update_repo() ); ?>" target="_blank" rel="noopener">github.com/<?php echo esc_html( btp_update_repo() ); ?></a> och installeras av WordPress själv. Innehåll (texter, bilder, synlighet) kräver aldrig en ny version.</p>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<?php wp_nonce_field( 'btp_update_check' ); ?>
 			<input type="hidden" name="action" value="btp_update_check">
