@@ -1,0 +1,6 @@
+{
+  "version": "0.5.0",
+  "package": "https://raw.githubusercontent.com/Damma65/bernerturf-produkter/main/releases/bernerturf-produkter-0.5.0.zip",
+  "date": "2026-11-05",
+  "notes": "Första versionen: produktkatalog och produktsida, import från Excel/SharePoint, översättning med Claude, nattlig import och automatiska uppdateringar."
+}
