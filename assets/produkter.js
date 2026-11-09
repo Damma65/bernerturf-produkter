@@ -50,7 +50,7 @@
 			var d = card.dataset;
 			if (state.q && d.search.indexOf(state.q) === -1) return false;
 			if (skip !== 'sup' && state.sup && d.sup !== state.sup) return false;
-			if (skip !== 'cat' && state.cat && d.cat !== state.cat) return false;
+			if (skip !== 'cat' && state.cat && d.cat !== state.cat && d.cat.indexOf(state.cat + ',') !== 0) return false; // kat=Gödsel matchar Gödsel, granulär + Gödsel, flytande
 			if (skip !== 'land' && state.land && (' ' + d.land + ' ').indexOf(' ' + state.land + ' ') === -1) return false;
 			return true;
 		}
