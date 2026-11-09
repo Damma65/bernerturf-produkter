@@ -61,6 +61,7 @@ Inaktivera och radera pluginet. Fälten btp_* och leverantörstermerna ligger kv
 = 0.5.1 =
 * Produktens egen adress (/product/…) visar den nya produktsidan när produkten har den påslagen (sätts av importen). Temats sidhuvud och sidfot används. Stängs av med BTP_DISABLE_SINGLE_TEMPLATE.
 * Katalogkorten länkar till produktens egen adress.
+* Katalogens val (leverantör, kategori, land, sökning, sortering, antal per rad, infotext) sparas i adressen. Tillbaka från en produkt visar samma urval på samma plats i listan, och ett filtrerat urval kan delas som länk.
 * Språkkopior (WPML): svenska, finska och norska sajten visar texterna från Excel även när temat har en egen kopia av produkten per språk.
 * Säkrare översättning: ett anrop per språk, svaret kommer i fast format via verktyg (inget fritt JSON), nytt försök vid avklippta svar och tillfälliga fel.
 
