@@ -63,3 +63,41 @@ add_filter( 'body_class', function ( $classes ) {
 	}
 	return $classes;
 } );
+
+/**
+ * Metabeskrivning för produktsidor: ingressen från Excel på besökarens språk, när Yoast inte har
+ * någon egen beskrivning för produkten. En beskrivning skriven i Yoast vinner alltid.
+ */
+function btp_product_meta_description() {
+	if ( ! is_singular( 'berner-products' ) ) {
+		return '';
+	}
+	$src  = btp_source_id( (int) get_queried_object_id() );
+	$text = trim( wp_strip_all_tags( (string) btp_field( $src, 'ingress' ) ) );
+	if ( '' === $text ) {
+		$text = trim( wp_strip_all_tags( (string) btp_field( $src, 'beskrivning' ) ) );
+	}
+	$text = preg_replace( '/\s+/u', ' ', $text );
+	if ( mb_strlen( $text ) > 155 ) {
+		$cut  = mb_substr( $text, 0, 152 );
+		$sp   = mb_strrpos( $cut, ' ' );
+		$text = ( $sp > 100 ? mb_substr( $cut, 0, $sp ) : $cut ) . '…';
+	}
+	return $text;
+}
+
+add_filter( 'wpseo_metadesc', function ( $desc ) {
+	if ( '' !== trim( (string) $desc ) ) {
+		return $desc;
+	}
+	$own = btp_product_meta_description();
+	return '' !== $own ? $own : $desc;
+}, 20 );
+
+add_filter( 'wpseo_opengraph_desc', function ( $desc ) {
+	if ( '' !== trim( (string) $desc ) ) {
+		return $desc;
+	}
+	$own = btp_product_meta_description();
+	return '' !== $own ? $own : $desc;
+}, 20 );

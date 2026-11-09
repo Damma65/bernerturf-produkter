@@ -2,5 +2,5 @@
   "version": "0.5.1",
   "package": "https://raw.githubusercontent.com/Damma65/bernerturf-produkter/main/releases/bernerturf-produkter-0.5.1.zip",
   "date": "2026-11-09",
-  "notes": "Produktens egen adress visar den nya produktsidan. Språkkopior (WPML) hittar texterna från Excel. Säkrare översättning med Claude (fast svarsformat, nya försök). Katalogens filter sparas i adressen så att Tillbaka visar samma urval."
+  "notes": "Produktens egen adress visar den nya produktsidan. Språkkopior (WPML) hittar texterna från Excel. Säkrare översättning med Claude (fast svarsformat, nya försök). Katalogens filter sparas i adressen så att Tillbaka visar samma urval. SEO: H1 i katalogen, alt-texter och metabeskrivningar på produktsidor."
 }

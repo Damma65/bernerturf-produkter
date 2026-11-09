@@ -84,7 +84,7 @@ function btp_render_catalog( $atts ) {
 			<div class="btp-wrap btp-hero__inner">
 				<div class="btp-hero__text">
 					<p class="btp-kicker"><?php echo esc_html( btp_t( 'products' ) ); ?></p>
-					<h2 class="btp-hero__title"><?php echo esc_html( $atts['rubrik'] ); ?></h2>
+					<h1 class="btp-hero__title"><?php echo esc_html( $atts['rubrik'] ); ?></h1>
 					<?php if ( '' !== trim( $atts['ingress'] ) ) : ?><p class="btp-hero__lead"><?php echo esc_html( $atts['ingress'] ); ?></p><?php endif; ?>
 				</div>
 				<label class="btp-search">
@@ -188,7 +188,7 @@ function btp_render_catalog( $atts ) {
 						<article class="btp-card" data-sup="<?php echo esc_attr( $p['supplier'] ); ?>" data-cat="<?php echo esc_attr( $p['category'] ); ?>" data-land="<?php echo esc_attr( implode( ' ', $p['countries'] ) ); ?>" data-name="<?php echo esc_attr( strtolower( $p['title'] ) ); ?>" data-search="<?php echo esc_attr( $search ); ?>">
 							<div class="btp-card__media">
 								<?php if ( $p['image'] ) : ?>
-									<img src="<?php echo esc_url( $p['image'] ); ?>" alt="" loading="lazy" decoding="async">
+									<img src="<?php echo esc_url( $p['image'] ); ?>" alt="<?php echo esc_attr( $p['title'] ); ?>" loading="lazy" decoding="async">
 								<?php endif; ?>
 								<?php if ( 'Övriga' !== $p['supplier'] ) : ?><span class="btp-badge btp-badge--<?php echo esc_attr( btp_supplier_class( $p['supplier'] ) ); ?>"><?php echo esc_html( $p['supplier'] ); ?></span><?php endif; ?>
 							</div>
