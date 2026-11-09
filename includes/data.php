@@ -417,20 +417,22 @@ function btp_get_products() {
 	);
 	$products = array();
 	foreach ( $posts as $post ) {
-		if ( ! btp_visible_here( $post->ID ) ) {
+		// Språkkopior (WPML): texterna från Excel ligger på en av kopiorna. Länken är kvar på besökarens språk.
+		$src = btp_source_id( $post->ID );
+		if ( ! btp_visible_here( $src ) ) {
 			continue;
 		}
-		$title      = btp_title_for( $post->ID );
-		$article    = btp_article_data( $post->ID );
+		$title      = btp_title_for( $src );
+		$article    = btp_article_data( $src );
 		$products[] = array(
-			'id'        => $post->ID,
+			'id'        => $src,
 			'title'     => $title,
 			'url'       => get_permalink( $post ),
-			'supplier'  => btp_supplier_for( $post->ID, $title ),
-			'category'  => btp_category_for( $post->ID ),
-			'countries' => btp_countries_for( $post->ID ),
-			'image'     => btp_image_for( $post->ID ),
-			'text'      => btp_card_text_for( $post->ID ),
+			'supplier'  => btp_supplier_for( $src, $title ),
+			'category'  => btp_category_for( $src ),
+			'countries' => btp_countries_for( $src ),
+			'image'     => btp_image_for( $src ) ? btp_image_for( $src ) : btp_image_for( $post->ID ),
+			'text'      => btp_card_text_for( $src ),
 			'artikel'   => $article['artikel'],
 		);
 	}
@@ -445,4 +447,48 @@ function btp_visitor_country() {
 	$lang = btp_raw_lang();
 	$map  = array( 'sv' => 'SE', 'nb' => 'NO', 'nn' => 'NO', 'no' => 'NO', 'fi' => 'FI', 'et' => 'EE', 'lv' => 'LV', 'lt' => 'LT' );
 	return apply_filters( 'bernerturf_produkter_visitor_country', isset( $map[ $lang ] ) ? $map[ $lang ] : '', $lang );
+}
+
+/**
+ * Produkten som bär pluginets data (btp_*) i samma språkgrupp (WPML).
+ * Temat har en kopia per språk (t.ex. 3068 engelska, 3066 svenska, 3064 finska) medan importen
+ * skriver till en av dem. Har ingen kopia pluginets data används produkten själv.
+ */
+function btp_has_own_data( $post_id ) {
+	return '' !== (string) get_post_meta( $post_id, 'btp_webb', true ) || '' !== (string) get_post_meta( $post_id, 'btp_artikel', true );
+}
+
+function btp_source_id( $post_id ) {
+	static $cache = array();
+	$post_id = (int) $post_id;
+	if ( isset( $cache[ $post_id ] ) ) {
+		return $cache[ $post_id ];
+	}
+	$found = $post_id;
+	if ( ! btp_has_own_data( $post_id ) ) {
+		$type = 'post_berner-products';
+		$trid = apply_filters( 'wpml_element_trid', null, $post_id, $type );
+		if ( $trid ) {
+			$group = apply_filters( 'wpml_get_element_translations', null, $trid, $type );
+			$ids   = array();
+			foreach ( (array) $group as $t ) {
+				if ( isset( $t->element_id ) && (int) $t->element_id !== $post_id ) {
+					// Originalet först, sedan övriga kopior.
+					if ( ! empty( $t->original ) ) {
+						array_unshift( $ids, (int) $t->element_id );
+					} else {
+						$ids[] = (int) $t->element_id;
+					}
+				}
+			}
+			foreach ( $ids as $id ) {
+				if ( btp_has_own_data( $id ) ) {
+					$found = $id;
+					break;
+				}
+			}
+		}
+	}
+	$cache[ $post_id ] = $found;
+	return $found;
 }

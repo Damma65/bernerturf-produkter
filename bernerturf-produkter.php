@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Berner Turf Produkter
  * Description:       Egen produktkatalog med filter (leverantör, kategori, land) och artikelsida med näringstabell. Kortkoder: [bernerturf_produkter] och [bernerturf_produkt id="123"].
- * Version:           0.5.0
+ * Version:           0.5.1
  * Author:            Berner Turf
  * Text Domain:       bernerturf-produkter
  * Requires at least: 6.2
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'BTP_VERSION', '0.5.0' );
+define( 'BTP_VERSION', '0.5.1' );
 define( 'BTP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BTP_URL', plugin_dir_url( __FILE__ ) );
 
@@ -33,6 +33,7 @@ require_once BTP_DIR . 'includes/data.php';
 require_once BTP_DIR . 'includes/render-catalog.php';
 require_once BTP_DIR . 'includes/render-article.php';
 require_once BTP_DIR . 'includes/translate.php';
+require_once BTP_DIR . 'includes/single.php';
 if ( is_admin() || wp_doing_cron() ) {
 	require_once BTP_DIR . 'includes/admin.php';
 	require_once BTP_DIR . 'includes/xlsx.php';
@@ -103,6 +104,7 @@ add_shortcode( 'bernerturf_produkter', 'btp_shortcode_catalog' );
 function btp_shortcode_article( $atts ) {
 	$atts = shortcode_atts( array( 'id' => 0, 'kontakt' => '' ), $atts, 'bernerturf_produkt' );
 	$id   = btp_resolve_article_id( absint( $atts['id'] ) );
+	$id   = $id ? btp_source_id( $id ) : 0;
 	if ( ! $id || 'berner-products' !== get_post_type( $id ) || 'publish' !== get_post_status( $id ) || ! btp_visible_here( $id ) ) {
 		return '';
 	}

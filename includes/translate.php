@@ -80,6 +80,11 @@ function btp_lang_name_en( $lang ) {
  * Översätter en produkts textfält. $fields = array( fält => text ) på källspråket.
  * $targets = array( 'sv', 'en', 'no' ). $protect = namn som aldrig får översättas.
  * Ger array( språk => array( fält => text ) ) eller WP_Error.
+ *
+ * Sedan 0.5.1: ett anrop per språk, och Claude måste svara via ett verktyg med fast schema
+ * (tool_choice). Då kommer svaret alltid som ett giltigt objekt – inget fritt JSON att tolka.
+ * Avklippta svar och tillfälliga fel (429, 5xx, överbelastning) försöks igen.
+ * Lyckas inte alla språk returneras de som lyckades; felet gäller bara resten.
  */
 function btp_ai_translate( $fields, $targets, $protect = array(), $source = 'fi' ) {
 	$key = btp_api_key();
@@ -91,77 +96,124 @@ function btp_ai_translate( $fields, $targets, $protect = array(), $source = 'fi'
 	if ( empty( $fields ) || empty( $targets ) ) {
 		return array();
 	}
+	$out    = array();
+	$failed = array();
+	foreach ( $targets as $lang ) {
+		$res = btp_ai_translate_one( $fields, $lang, $protect, $source );
+		if ( is_wp_error( $res ) ) {
+			$failed[] = $lang . ': ' . $res->get_error_message();
+			continue;
+		}
+		if ( $res ) {
+			$out[ $lang ] = $res;
+		}
+	}
+	if ( empty( $out ) && $failed ) {
+		return new WP_Error( 'btp_ai', implode( ' · ', $failed ) );
+	}
+	return $out;
+}
+
+/**
+ * Ett språk. Ger array( fält => text ) eller WP_Error.
+ */
+function btp_ai_translate_one( $fields, $lang, $protect, $source ) {
 	$settings = btp_settings();
-	$protect  = array_values( array_unique( array_filter( array_map( 'trim', $protect ) ) ) );
-	$langs    = implode( ', ', array_map( function ( $l ) {
-		return $l . ' = ' . btp_lang_name_en( $l );
-	}, $targets ) );
+	$protect  = array_values( array_unique( array_filter( array_map( 'trim', (array) $protect ) ) ) );
 
 	$system = 'You translate product texts for Berner Turf, a Nordic supplier of fertilisers, plant protection, wetting agents and seed for golf courses, football pitches and municipal sports turf. '
-		. 'The readers are greenkeepers and groundsmen. Write the way a native turf professional in each country would write it: precise, natural and short. Do not add or drop information.' . "\n\n"
+		. 'The readers are greenkeepers and groundsmen. Write the way a native turf professional in the target country would write it: precise, natural and short. Do not add or drop information.' . "\n\n"
 		. "Rules:\n"
 		. "1. Never translate product names, brand names, supplier names or trademarks. Copy them exactly. Protected names: " . ( $protect ? implode( '; ', $protect ) : '(none)' ) . "\n"
 		. "2. Keep every number, unit, range, percentage, chemical symbol, NPK value and granule size (e.g. SGN 140) exactly as written. Use the decimal separator of the target language (comma for sv, no and fi; point for en).\n"
-		. "3. Keep the same lines: one line in gives one line out, in the same order. Keep bullet characters (•) at the start of lines.\n"
+		. "3. Keep the same lines: one line in gives one line out, in the same order. Keep bullet characters (•) and lines starting with '#' at the start of lines.\n"
 		. "4. Lines in the form 'Label: value' keep that form; translate both parts but keep numbers unchanged.\n"
 		. "5. In the field 'naring' each line is 'name | value | colour'. Translate only the name; copy the value and the colour word exactly.\n"
-		. "6. Use this glossary (Finnish = Swedish | English | Norwegian):\n" . trim( (string) $settings['glossary'] ) . "\n\n"
-		. 'Answer with JSON only, no comments and no code fences, in exactly this shape: {"<language code>": {"<field>": "<translated text>"}}. '
-		. 'Include every requested language and every field.';
+		. "6. URLs are copied unchanged.\n"
+		. "7. Use this glossary (Finnish = Swedish | English | Norwegian):\n" . trim( (string) $settings['glossary'] ) . "\n\n"
+		. 'Return the result only by calling the tool save_translation, with every field filled in.';
 
-	$user = 'Source language: ' . btp_lang_name_en( $source ) . "\nTranslate into: " . $langs . "\nFields:\n" . wp_json_encode( $fields, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
-
-	$response = wp_remote_post(
-		'https://api.anthropic.com/v1/messages',
-		array(
-			'timeout' => 120,
-			'headers' => array(
-				'x-api-key'         => $key,
-				'anthropic-version' => '2023-06-01',
-				'content-type'      => 'application/json',
-			),
-			'body'    => wp_json_encode(
-				array(
-					'model'      => $settings['model'] ? $settings['model'] : 'claude-sonnet-5-5',
-					'max_tokens' => 8000,
-					'system'     => $system,
-					'messages'   => array( array( 'role' => 'user', 'content' => $user ) ),
-				)
-			),
-		)
+	$props = array();
+	foreach ( array_keys( $fields ) as $f ) {
+		$props[ $f ] = array( 'type' => 'string', 'description' => 'The field "' . $f . '" translated into ' . btp_lang_name_en( $lang ) . '.' );
+	}
+	$tool = array(
+		'name'         => 'save_translation',
+		'description'  => 'Saves the translated product fields in ' . btp_lang_name_en( $lang ) . '.',
+		'input_schema' => array(
+			'type'                 => 'object',
+			'properties'           => $props,
+			'required'             => array_keys( $fields ),
+			'additionalProperties' => false,
+		),
 	);
-	if ( is_wp_error( $response ) ) {
-		return new WP_Error( 'btp_ai', 'Kunde inte nå Claude: ' . $response->get_error_message() );
-	}
-	$code = wp_remote_retrieve_response_code( $response );
-	$body = json_decode( wp_remote_retrieve_body( $response ), true );
-	if ( 200 !== (int) $code ) {
-		$msg = isset( $body['error']['message'] ) ? $body['error']['message'] : 'HTTP ' . $code;
-		return new WP_Error( 'btp_ai', 'Claude svarade med fel: ' . $msg );
-	}
-	$text = '';
-	foreach ( (array) ( isset( $body['content'] ) ? $body['content'] : array() ) as $part ) {
-		if ( isset( $part['type'], $part['text'] ) && 'text' === $part['type'] ) {
-			$text .= $part['text'];
+	$user = 'Source language: ' . btp_lang_name_en( $source ) . "\nTarget language: " . btp_lang_name_en( $lang ) . "\nFields:\n" . wp_json_encode( $fields, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
+
+	$max_tokens = 8000;
+	$last       = null;
+	for ( $attempt = 1; $attempt <= 3; $attempt++ ) {
+		$response = wp_remote_post(
+			'https://api.anthropic.com/v1/messages',
+			array(
+				'timeout' => 90,
+				'headers' => array(
+					'x-api-key'         => btp_api_key(),
+					'anthropic-version' => '2023-06-01',
+					'content-type'      => 'application/json',
+				),
+				'body'    => wp_json_encode(
+					array(
+						'model'       => $settings['model'] ? $settings['model'] : 'claude-sonnet-5-5',
+						'max_tokens'  => $max_tokens,
+						'system'      => $system,
+						'tools'       => array( $tool ),
+						'tool_choice' => array( 'type' => 'tool', 'name' => 'save_translation' ),
+						'messages'    => array( array( 'role' => 'user', 'content' => $user ) ),
+					)
+				),
+			)
+		);
+		if ( is_wp_error( $response ) ) {
+			$last = new WP_Error( 'btp_ai', 'Kunde inte nå Claude: ' . $response->get_error_message() );
+			sleep( 2 * $attempt );
+			continue;
 		}
-	}
-	$text = trim( preg_replace( '/^```(?:json)?|```$/m', '', trim( $text ) ) );
-	$json = json_decode( $text, true );
-	if ( ! is_array( $json ) ) {
-		$start = strpos( $text, '{' );
-		$end   = strrpos( $text, '}' );
-		$json  = ( false !== $start && false !== $end ) ? json_decode( substr( $text, $start, $end - $start + 1 ), true ) : null;
-	}
-	if ( ! is_array( $json ) ) {
-		return new WP_Error( 'btp_ai', 'Svaret från Claude gick inte att läsa.' );
-	}
-	$out = array();
-	foreach ( $targets as $lang ) {
-		foreach ( array_keys( $fields ) as $field ) {
-			if ( isset( $json[ $lang ][ $field ] ) && is_string( $json[ $lang ][ $field ] ) && '' !== trim( $json[ $lang ][ $field ] ) ) {
-				$out[ $lang ][ $field ] = trim( $json[ $lang ][ $field ] );
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( 200 !== $code ) {
+			$msg  = isset( $body['error']['message'] ) ? $body['error']['message'] : 'HTTP ' . $code;
+			$last = new WP_Error( 'btp_ai', 'Claude svarade med fel: ' . $msg );
+			if ( 429 === $code || $code >= 500 ) {
+				sleep( 3 * $attempt );
+				continue;
+			}
+			return $last; // T.ex. fel nyckel – lönt inte att försöka igen.
+		}
+		if ( isset( $body['stop_reason'] ) && 'max_tokens' === $body['stop_reason'] ) {
+			$last       = new WP_Error( 'btp_ai', 'Svaret blev för långt och klipptes av.' );
+			$max_tokens = 16000;
+			continue;
+		}
+		$input = null;
+		foreach ( (array) ( isset( $body['content'] ) ? $body['content'] : array() ) as $part ) {
+			if ( isset( $part['type'], $part['input'] ) && 'tool_use' === $part['type'] && is_array( $part['input'] ) ) {
+				$input = $part['input'];
 			}
 		}
+		if ( ! is_array( $input ) ) {
+			$last = new WP_Error( 'btp_ai', 'Claude lämnade inget svar i rätt format.' );
+			continue;
+		}
+		$out = array();
+		foreach ( array_keys( $fields ) as $field ) {
+			if ( isset( $input[ $field ] ) && is_string( $input[ $field ] ) && '' !== trim( $input[ $field ] ) ) {
+				$out[ $field ] = trim( $input[ $field ] );
+			}
+		}
+		if ( $out ) {
+			return $out;
+		}
+		$last = new WP_Error( 'btp_ai', 'Claude lämnade tomma fält.' );
 	}
-	return $out;
+	return $last ? $last : new WP_Error( 'btp_ai', 'Översättningen misslyckades.' );
 }

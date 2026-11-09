@@ -89,7 +89,8 @@ function btp_resolve_article_id( $fallback_id ) {
 	return $fallback_id;
 }
 
-function btp_render_article( $post_id, $contact = '' ) {
+function btp_render_article( $post_id, $contact = '', $heading = 'h2' ) {
+	$heading   = 'h1' === $heading ? 'h1' : 'h2';
 	$a         = btp_article_data( $post_id );
 	$title     = btp_title_for( $post_id );
 	$supplier  = btp_supplier_for( $post_id, $title );
@@ -135,7 +136,7 @@ function btp_render_article( $post_id, $contact = '' ) {
 			</div>
 			<div class="btp-article__info">
 				<p class="btp-article__kicker"><?php echo esc_html( trim( $category . ' · ' . $supplier, ' ·' ) ); ?></p>
-				<h2 class="btp-article__title"><?php echo esc_html( $title ); ?></h2>
+				<<?php echo $heading; // phpcs:ignore ?> class="btp-article__title"><?php echo esc_html( $title ); ?></<?php echo $heading; // phpcs:ignore ?>>
 				<?php if ( $lead ) : ?>
 					<p class="btp-article__lead"><?php echo esc_html( $lead ); ?></p>
 				<?php endif; ?>

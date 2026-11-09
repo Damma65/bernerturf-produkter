@@ -39,7 +39,7 @@ function btp_supplier_style( $name, $mode ) {
  * Länk till produktsidan: ny produktsida om den är påslagen, annars temats vanliga sida.
  */
 function btp_product_link( $p, $article_page ) {
-	if ( empty( $p['artikel'] ) ) {
+	if ( empty( $p['artikel'] ) || btp_single_template_on() ) {
 		return $p['url'];
 	}
 	$base = $article_page ? $article_page : get_permalink();

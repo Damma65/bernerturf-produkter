@@ -1,5 +1,5 @@
 === Berner Turf Produkter ===
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 Requires at least: 6.2
 Requires PHP: 7.4
 License: GPL-2.0-or-later
@@ -58,6 +58,12 @@ Egen produktkatalog och produktsida för bernerturf.com.
 Inaktivera och radera pluginet. Fälten btp_* och leverantörstermerna ligger kvar i databasen men används inte av något annat.
 
 == Ändringslogg ==
+= 0.5.1 =
+* Produktens egen adress (/product/…) visar den nya produktsidan när produkten har den påslagen (sätts av importen). Temats sidhuvud och sidfot används. Stängs av med BTP_DISABLE_SINGLE_TEMPLATE.
+* Katalogkorten länkar till produktens egen adress.
+* Språkkopior (WPML): svenska, finska och norska sajten visar texterna från Excel även när temat har en egen kopia av produkten per språk.
+* Säkrare översättning: ett anrop per språk, svaret kommer i fast format via verktyg (inget fritt JSON), nytt försök vid avklippta svar och tillfälliga fel.
+
 = 0.5.0 =
 * Automatisk nattlig import direkt från SharePoint via Microsoft Graph (endast läsrätt), med bildmapp,
   ändringskontroll, översättning i omgångar, skyddsspärr och e-postrapport.
