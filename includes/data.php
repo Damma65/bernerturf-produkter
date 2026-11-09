@@ -404,17 +404,7 @@ function btp_visible_here( $post_id ) {
 }
 
 function btp_get_products() {
-	$posts    = get_posts(
-		array(
-			'post_type'        => 'berner-products',
-			'post_status'      => 'publish',
-			'post_parent'      => 0,
-			'numberposts'      => -1,
-			'orderby'          => 'title',
-			'order'            => 'ASC',
-			'suppress_filters' => false,
-		)
-	);
+	$posts    = btp_catalog_posts();
 	$products = array();
 	foreach ( $posts as $post ) {
 		// Språkkopior (WPML): texterna från Excel ligger på en av kopiorna. Länken är kvar på besökarens språk.
@@ -491,4 +481,46 @@ function btp_source_id( $post_id ) {
 	}
 	$cache[ $post_id ] = $found;
 	return $found;
+}
+
+/**
+ * Produkterna i katalogen, en per produkt.
+ * Med WPML: besökarens språkkopior plus de produkter i standardspråket som saknar kopia på
+ * besökarens språk (t.ex. norska sajten där nästan inga kopior finns). Utan WPML: alla produkter.
+ */
+function btp_catalog_posts() {
+	$args = array(
+		'post_type'        => 'berner-products',
+		'post_status'      => 'publish',
+		'post_parent'      => 0,
+		'numberposts'      => -1,
+		'orderby'          => 'title',
+		'order'            => 'ASC',
+		'suppress_filters' => false,
+	);
+	$current = get_posts( $args );
+	$def     = apply_filters( 'wpml_default_language', null );
+	$cur     = apply_filters( 'wpml_current_language', null );
+	if ( ! $def || ! $cur || $def === $cur ) {
+		return $current;
+	}
+	$seen = array();
+	foreach ( $current as $post ) {
+		$seen[ btp_source_id( $post->ID ) ] = true;
+		$trid = apply_filters( 'wpml_element_trid', null, $post->ID, 'post_berner-products' );
+		if ( $trid ) {
+			$seen[ 'trid:' . $trid ] = true;
+		}
+	}
+	do_action( 'wpml_switch_language', $def );
+	$default = get_posts( $args );
+	do_action( 'wpml_switch_language', $cur );
+	foreach ( $default as $post ) {
+		$trid = apply_filters( 'wpml_element_trid', null, $post->ID, 'post_berner-products' );
+		if ( isset( $seen[ btp_source_id( $post->ID ) ] ) || ( $trid && isset( $seen[ 'trid:' . $trid ] ) ) ) {
+			continue;
+		}
+		$current[] = $post;
+	}
+	return $current;
 }
