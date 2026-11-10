@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Berner Turf Produkter
  * Description:       Egen produktkatalog med filter (leverantör, kategori, land) och artikelsida med näringstabell. Kortkoder: [bernerturf_produkter] och [bernerturf_produkt id="123"].
- * Version:           0.5.1
+ * Version:           0.5.2
  * Author:            Berner Turf
  * Text Domain:       bernerturf-produkter
  * Requires at least: 6.2
@@ -14,7 +14,7 @@
  * näringsinnehåll och leverantörer kan ändras i WP-admin eller via REST utan ny pluginversion.
  * Produkterna kan styras från en Excel-fil (Produkter > Importera från Excel), med översättning via Claude.
  * Valfri nattlig import direkt från SharePoint (Microsoft Graph, endast läsrätt).
- * Uppdaterar sig själv från GitHub (Damma65/bernerturf-produkter). Stängs av med BTP_DISABLE_AUTO_UPDATE.
+ * Nya versioner hämtas från GitHub (Damma65/bernerturf-produkter) och installeras för hand under Tillägg. Automatik: BTP_ENABLE_AUTO_UPDATE.
  * Update URI:        https://github.com/Damma65/bernerturf-produkter
  * Inga egna tabeller. Temats egna produktfält rörs inte.
  */
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'BTP_VERSION', '0.5.1' );
+define( 'BTP_VERSION', '0.5.2' );
 define( 'BTP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BTP_URL', plugin_dir_url( __FILE__ ) );
 

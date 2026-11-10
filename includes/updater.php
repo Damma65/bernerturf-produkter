@@ -4,10 +4,12 @@
  *
  * Nya versioner läggs upp i arkivet: update.json (version, länk, ändringar) och zip-filen i mappen releases/.
  * WordPress ser dem som vanliga
- * pluginuppdateringar och installerar dem automatiskt (bakgrundsuppdatering, ungefär två gånger per dygn).
+ * pluginuppdateringar: de visas under Tillägg och installeras för hand av en administratör.
  *
- * Stäng av automatiken: define( 'BTP_DISABLE_AUTO_UPDATE', true ); i wp-config.php – då visas
- * uppdateringen bara som vanligt under Tillägg och installeras för hand.
+ * Säkerhet (från 0.5.2): ingenting installeras automatiskt. Pluginet ligger i ett multisite-nätverk, så en
+ * automatisk installation skulle köra ny kod på hela nätverket utan att någon har godkänt den.
+ * Slå på automatiken uttryckligen: define( 'BTP_ENABLE_AUTO_UPDATE', true ); i wp-config.php.
+ * BTP_DISABLE_AUTO_UPDATE (äldre) stänger alltid av den.
  * Stäng av uppdateringskollen helt: define( 'BTP_UPDATE_REPO', '' );
  */
 
@@ -17,6 +19,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 function btp_update_repo() {
 	return defined( 'BTP_UPDATE_REPO' ) ? (string) BTP_UPDATE_REPO : 'Damma65/bernerturf-produkter';
+}
+
+/**
+ * Automatisk installation är av om den inte uttryckligen är påslagen i wp-config.php.
+ */
+function btp_update_auto_enabled() {
+	if ( defined( 'BTP_DISABLE_AUTO_UPDATE' ) && BTP_DISABLE_AUTO_UPDATE ) {
+		return false;
+	}
+	return defined( 'BTP_ENABLE_AUTO_UPDATE' ) && BTP_ENABLE_AUTO_UPDATE;
 }
 
 function btp_plugin_basename() {
@@ -119,11 +131,11 @@ function btp_update_details( $result, $action, $args ) {
 add_filter( 'plugins_api', 'btp_update_details', 10, 3 );
 
 /**
- * Automatiska uppdateringar på för just det här pluginet (om det inte är avstängt i wp-config.php).
+ * Automatiska uppdateringar för just det här pluginet: bara om de är påslagna i wp-config.php.
  */
 function btp_update_auto( $update, $item ) {
 	if ( isset( $item->plugin ) && btp_plugin_basename() === $item->plugin ) {
-		return ! ( defined( 'BTP_DISABLE_AUTO_UPDATE' ) && BTP_DISABLE_AUTO_UPDATE );
+		return btp_update_auto_enabled();
 	}
 	return $update;
 }
@@ -153,7 +165,7 @@ function btp_update_handle_check() {
 	if ( ! $info ) {
 		$msg = 'Hittade ingen version på GitHub (' . btp_update_repo() . ').';
 	} elseif ( version_compare( $info['version'], BTP_VERSION, '>' ) ) {
-		$msg = 'Version ' . $info['version'] . ' finns. ' . ( ( defined( 'BTP_DISABLE_AUTO_UPDATE' ) && BTP_DISABLE_AUTO_UPDATE ) ? 'Den installeras under Tillägg.' : 'WordPress installerar den automatiskt inom några timmar.' );
+		$msg = 'Version ' . $info['version'] . ' finns. ' . ( btp_update_auto_enabled() ? 'WordPress installerar den automatiskt inom några timmar.' : 'Den installeras för hand under Tillägg.' );
 	} else {
 		$msg = 'Senaste versionen (' . BTP_VERSION . ') är installerad.';
 	}
@@ -164,14 +176,14 @@ add_action( 'admin_post_btp_update_check', 'btp_update_handle_check' );
 
 function btp_update_box() {
 	$info = btp_update_info();
-	$auto = ! ( defined( 'BTP_DISABLE_AUTO_UPDATE' ) && BTP_DISABLE_AUTO_UPDATE );
+	$auto = btp_update_auto_enabled();
 	?>
 	<div class="card-ish">
 		<h2 style="margin-top:0">Version och uppdateringar</h2>
 		<p>Installerad version: <b><?php echo esc_html( BTP_VERSION ); ?></b>.
 			<?php if ( $info ) : ?>Senaste på GitHub: <b><?php echo esc_html( $info['version'] ); ?></b>.<?php endif; ?>
-			Automatiska uppdateringar: <b><?php echo $auto ? 'på' : 'av (BTP_DISABLE_AUTO_UPDATE)'; ?></b>.</p>
-		<p class="hint">Nya versioner hämtas från <a href="<?php echo esc_url( 'https://github.com/' . btp_update_repo() ); ?>" target="_blank" rel="noopener">github.com/<?php echo esc_html( btp_update_repo() ); ?></a> och installeras av WordPress själv. Innehåll (texter, bilder, synlighet) kräver aldrig en ny version.</p>
+			Automatiska uppdateringar: <b><?php echo $auto ? 'på (BTP_ENABLE_AUTO_UPDATE)' : 'av'; ?></b>.</p>
+		<p class="hint">Nya versioner hämtas från <a href="<?php echo esc_url( 'https://github.com/' . btp_update_repo() ); ?>" target="_blank" rel="noopener">github.com/<?php echo esc_html( btp_update_repo() ); ?></a> och visas under Tillägg, där en administratör installerar dem. Innehåll (texter, bilder, synlighet) kräver aldrig en ny version.</p>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<?php wp_nonce_field( 'btp_update_check' ); ?>
 			<input type="hidden" name="action" value="btp_update_check">

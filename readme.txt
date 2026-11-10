@@ -1,5 +1,5 @@
 === Berner Turf Produkter ===
-Stable tag: 0.5.1
+Stable tag: 0.5.2
 Requires at least: 6.2
 Requires PHP: 7.4
 License: GPL-2.0-or-later
@@ -35,8 +35,8 @@ Egen produktkatalog och produktsida för bernerturf.com.
 
 == Uppdateringar ==
 * Nya versioner publiceras i https://github.com/Damma65/bernerturf-produkter (update.json + releases/*.zip)
-  och installeras automatiskt av WordPress (bakgrundsuppdatering). Inställningar visar version och har "Sök efter uppdatering nu".
-* define( 'BTP_DISABLE_AUTO_UPDATE', true ); = uppdateringen visas under Tillägg men installeras för hand.
+  och visas under Tillägg, där en administratör installerar dem. Inställningar visar version och har "Sök efter uppdatering nu".
+* Från 0.5.2 installeras inget automatiskt. define( 'BTP_ENABLE_AUTO_UPDATE', true ); slår på automatisk installation (BTP_DISABLE_AUTO_UPDATE stänger alltid av den).
 * define( 'BTP_UPDATE_REPO', '' ); = ingen uppdateringskoll alls.
 
 == Ändra innehåll utan ny version ==
@@ -58,6 +58,9 @@ Egen produktkatalog och produktsida för bernerturf.com.
 Inaktivera och radera pluginet. Fälten btp_* och leverantörstermerna ligger kvar i databasen men används inte av något annat.
 
 == Ändringslogg ==
+= 0.5.2 =
+* Säkerhet: nya versioner installeras inte längre automatiskt. De visas under Tillägg och installeras för hand av en administratör. Automatiken slås bara på med define( 'BTP_ENABLE_AUTO_UPDATE', true ); i wp-config.php.
+
 = 0.5.1 =
 * Produktens egen adress (/product/…) visar den nya produktsidan när produkten har den påslagen (sätts av importen). Temats sidhuvud och sidfot används. Stängs av med BTP_DISABLE_SINGLE_TEMPLATE.
 * Katalogkorten länkar till produktens egen adress.
